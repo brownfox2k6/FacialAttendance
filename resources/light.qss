@@ -1,0 +1,81 @@
+/*---------- QMainWindow ----------*/
+QMainWindow {
+    background-color: rgb(248, 249, 250);
+    color: rgb(0, 0, 0);
+}
+
+/*---------- QComboBox ----------*/
+QComboBox {
+    border: 1px solid rgb(150, 150, 150);
+    border-radius: 8px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+QComboBox:hover {
+    border: 1px solid rgb(159, 205, 179);
+}
+QComboBox:focus {
+    border: 2px solid rgb(33, 115, 70);
+}
+
+/*---------- QDateEdit ----------*/
+QDateEdit {
+    border: 1px solid rgb(150, 150, 150);
+    border-radius: 8px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+QDateEdit:hover {
+    border: 1px solid rgb(159, 205, 179);
+}
+QDateEdit:focus {
+    border: 2px solid rgb(33, 115, 70);
+}
+
+/*---------- QLabel ----------*/
+QLabel {
+    color: rgb(0, 0, 0);
+}
+
+/*---------- QLineEdit ----------*/
+QLineEdit {
+    border: 1px solid rgb(150, 150, 150);
+    border-radius: 8px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+QLineEdit:hover {
+    border: 1px solid rgb(159, 205, 179);
+}
+QLineEdit:focus {
+    border: 2px solid rgb(33, 115, 70);
+}
+
+/*---------- QPushButton ----------*/
+QPushButton {
+    border: 1px solid rgb(150, 150, 150);
+    border-radius: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+QPushButton:hover {
+    border: 1px solid rgb(159, 205, 179);
+    background-color: rgb(233, 245, 238);
+}
+QPushButton:pressed {
+    border: 1px solid rgb(159, 205, 179);
+    background-color: rgb(159, 205, 179);
+}
+
+QTableView {
+    background-color: rgb(248, 249, 250);
+    border: 1px solid rgb(45, 163, 208)
+}

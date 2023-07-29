@@ -1,3 +1,4 @@
+from json import load
 from os import remove, rename
 from os.path import exists, join
 from queue import Queue
@@ -5,11 +6,11 @@ from sys import argv, exit
 from PyQt5.QtWidgets import QApplication
 
 from constants import (DATABASE_FILE_PATH, ENCODING_FOLDER_PATH,
-                       NUM_ENCODE_IMG, RESOURCE_FOLDER)
+                       NUM_ENCODE_IMG, RESOURCE_FOLDER, x1, x2, y1, y2)
 from db_access.class_repository import ClassRepository
 from db_access.entities import StudentEntity
 from db_access.student_repository import StudentRepository
-from image_widget import ImageWidget
+from resources.image_widget import ImageWidget
 from numpy import ndarray
 from PyQt5.QtCore import (QCoreApplication, QMetaObject, QRect, QSize, Qt,
                           pyqtSlot)
@@ -21,17 +22,20 @@ from PyQt5.QtWidgets import (QAction, QComboBox, QDateEdit, QFormLayout,
 from register_face import RegisterFace
 from registered_student_list import RegisteredStudentListDialog
 from webcam import WebcamHandler
-
+from cv2 import cvtColor, COLOR_BGR2RGB
 
 class StudentRegisterMainWindowUI(object):
     def __init__(self):
-        with open(join(RESOURCE_FOLDER, "theme.txt")) as specifiedTheme:
-            self.theme = "light" if specifiedTheme.read() == "1" else "dark"
+        with open(join(RESOURCE_FOLDER, "translations.json"), encoding="utf-8") as translations:
+            self.transdict = load(translations)
+        with open(join(RESOURCE_FOLDER, "configurations.json")) as configurations:
+            loaded = load(configurations)
+            self.lang = loaded["lang"]
+            with open(join(RESOURCE_FOLDER, loaded["theme"] + ".qss")) as themeFile:
+                self.styleSheet = themeFile.read()
+        self.translated = lambda x: self.transdict[self.lang][x]
 
     def setupUi(self, MainWindow):
-        with open(join(RESOURCE_FOLDER, self.theme + ".qss")) as themeFile:
-            self.styleSheet = themeFile.read()
-
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(810, 410)
         MainWindow.setWindowIcon(QIcon(join(RESOURCE_FOLDER, "facercg.png")))
@@ -168,6 +172,9 @@ class StudentRegisterMainWindowUI(object):
         self.registeredStudentAction = QAction(MainWindow)
         self.registeredStudentAction.setObjectName("registeredStudentAction")
         self.fileMenu.addAction(self.registeredStudentAction)
+        # self.changeLang = QAction(MainWindow)
+        # self.changeLang.setObjectName("changeLang")
+        # self.fileMenu.addAction(self.changeLang)
         self.menubar.addAction(self.fileMenu.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -175,18 +182,19 @@ class StudentRegisterMainWindowUI(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Đăng ký khuôn mặt học sinh"))
-        self.groupBox.setTitle(_translate("MainWindow", "Thông tin học sinh"))
-        self.nameLabel.setText(_translate("MainWindow", "Họ và Tên"))
-        self.studentIdLabel.setText(_translate("MainWindow", "Mã học sinh"))
-        self.birthdayLabel.setText(_translate("MainWindow", "Ngày sinh"))
-        self.classLabel.setText(_translate("MainWindow", "Lớp học"))
-        self.getSampleButton.setText(_translate("MainWindow", "Lấy mẫu"))
-        self.guideLabel.setText(_translate("MainWindow", "Đưa mặt vào chính giữa camera"))
-        self.saveButton.setText(_translate("MainWindow", "Lưu"))
-        self.cancelButton.setText(_translate("MainWindow", "Hủy"))
-        self.fileMenu.setTitle(_translate("MainWindow", "Tiện ích"))
-        self.registeredStudentAction.setText(_translate("MainWindow", "Danh sách HS đã đăng ký"))
+        MainWindow.setWindowTitle(_translate("MainWindow", self.translated("Face registration")))
+        self.groupBox.setTitle(_translate("MainWindow", self.translated("Student info")))
+        self.nameLabel.setText(_translate("MainWindow", self.translated("Full name")))
+        self.studentIdLabel.setText(_translate("MainWindow", self.translated("Student ID")))
+        self.birthdayLabel.setText(_translate("MainWindow", self.translated("Date of birth")))
+        self.classLabel.setText(_translate("MainWindow", self.translated("Class")))
+        self.getSampleButton.setText(_translate("MainWindow", self.translated("Get samples")))
+        self.guideLabel.setText(_translate("MainWindow", self.translated("Position your face in the camera frame")))
+        self.saveButton.setText(_translate("MainWindow", self.translated("Save")))
+        self.cancelButton.setText(_translate("MainWindow", self.translated("Cancel")))
+        self.fileMenu.setTitle(_translate("MainWindow", self.translated("Utilities")))
+        self.registeredStudentAction.setText(_translate("MainWindow", self.translated("List of registered students")))
+        self.guideLabel.setText(_translate("MainWindow", self.translated("Enter your information\nthen select \"Get samples\"")))
 
 
 class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
@@ -194,12 +202,11 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
         super().__init__(None)
         self.setupUi(self)
 
-        self.guideLabel.setText("Nhập thông tin của bạn\nsau đó chọn \"Lấy mẫu\"")
-
         self.getSampleButton.clicked.connect(self.onClickedStartBtn)
         self.saveButton.clicked.connect(self.onClickedSaveBtn)
         self.cancelButton.clicked.connect(self.onClickedCancelBtn)
         self.registeredStudentAction.triggered.connect(self.onClickedRegisteredStudent)
+        # self.changeLang.triggered.connect(self.onClickedChangeLang)
 
         self.image_queue = Queue()
 
@@ -217,13 +224,12 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
         self.loadingData()
 
     def loadingData(self):
-        # Lấy dữ liệu lớp và set dữ liệu cho classComboBox
         self.classEntities = self.classRepository.get_all_classes()
 
-        # Set dữ liệu cho classComboBox
-        self.classComboBox.addItems(tuple(entity.name for entity in self.classEntities))
+        # Set data for classComboBox
+        self.classComboBox.addItems([entity.name for entity in self.classEntities])
 
-        # Hiển thị logo khi webcam chưa được bật
+        # Display logo when webcam hasn't finished starting
         self.imgWidget.setImage(QImage(join(RESOURCE_FOLDER, "facercg.png")))
 
     def onClickedStartBtn(self):
@@ -232,20 +238,20 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
         studentName = self.nameLineEdit.text()
         studentId = self.studentIdLineEdit.text()
 
-        # Check nếu có lỗi nhập thông tin
+        # Check for information errors
         err = []
         if studentId is None or studentName == "":
-            err.append("• Mã học sinh trống")
+            err.append(self.transdict[self.lang]["• Student ID is empty"])
         elif studentId.isnumeric() == False:
-            err.append("• Mã học sinh chứa chữ cái hoặc ký tự đặc biệt")
+            err.append(self.transdict[self.lang]["• Student ID contains alphabetical characters or special characters"])
         if studentName is None or studentName == "":
-            err.append("• Họ và Tên trống")
+            err.append(self.transdict[self.lang]["• Full name is empty"])
         elif studentName.replace(" ", "").isalpha() == False:
-            err.append("• Họ và Tên chứa chữ số hoặc ký tự đặc biệt")
+            err.append(self.transdict[self.lang]["• Full name contains numerical characters or special characters"])
         if self.studentRepository.get_by_student_id(studentId):
-            err.append("• Mã học sinh này đã được đăng ký từ trước")
-        
-        # Nếu có lỗi thì hiện cửa sổ cảnh báo
+            err.append(self.transdict[self.lang]["• This Student ID has already exist"])
+
+        # Show error message box
         if err:
             msg = QMessageBox()
             msg.setStyleSheet(self.styleSheet)
@@ -256,22 +262,22 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
             msg.exec()
             return
 
-        # Khi camera chưa khởi động xong thì hiện dòng chữ này
-        if self.hasStartedCamera == False:
-            self.guideLabel.setText("Vui lòng chờ...\nCamera đang khởi động...")
+        # Display it when webcam hasn't finished starting
+        if not self.hasStartedCamera:
+            self.guideLabel.setText(self.transdict[self.lang]["Please wait... Camera is starting..."])
 
-        # Tạo luồng: webcam và đăng ký khuôn mặt
+        # Create thread: webcam and register face
         self.webcamHandler = WebcamHandler()
         self.webcamHandler.imgSignal.connect(self.captureImageCallback)
         
         self.registerFace = RegisterFace(self.image_queue, studentId)
         self.registerFace.registerSignal.connect(self.registerCallback)
 
-        # Chạy luồng
+        # Execute thread
         self.webcamHandler.start()
         self.registerFace.start()
 
-        # Cập nhật trạng thái nút bấm
+        # Update status of Buttons
         self.getSampleButton.setEnabled(False)
         self.saveButton.setEnabled(False)
         self.cancelButton.setEnabled(True)
@@ -280,16 +286,19 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
     def captureImageCallback(self, image):
         self.hasStartedCamera = True
 
-        # Khi chưa hoàn thành encode khuôn mặt thì vẫn hiển thị hướng dẫn
+        # Display instructions until finish encoding face
         if self.hasDoneSerializingEncoding == False:
-            self.guideLabel.setText("Di chuyển đều khuôn mặt\nTiến độ: {}/{}"
-                                    .format(self.registerFace.registerProgress, NUM_ENCODE_IMG))
+            self.guideLabel.setText(f"{self.translated('Move your face')}\n{self.translated('Progress')}:\
+                                      {self.registerFace.registerProgress}/{NUM_ENCODE_IMG}")
 
-        # push to queue
-        self.image_queue.put(image)
+        # We just register face one by one so bigger frame is not necessary
+        image = cvtColor(image[y1:y2, x1:x2], COLOR_BGR2RGB)
 
         # display image to UI
         self.display_image(image, self.imgWidget) 
+
+        # push to queue
+        self.image_queue.put(image)
 
     @pyqtSlot(str)
     def registerCallback(self, encode_file_path):
@@ -297,14 +306,14 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
         if encode_file_path != "":
             self.playSuccessSound.play()
             self.guideLabel.setStyleSheet("color: green")
-            self.guideLabel.setText("Lấy mẫu thành công. Vui lòng kiểm\ntra lại thông tin, sau đó chọn \"Lưu\"")
+            self.guideLabel.setText(self.translated("Get samples successfully. Please recheck\nyour information then click \"Save\""))
             self.cur_encoding_path = encode_file_path
             self.saveButton.setEnabled(True)
             self.getSampleButton.setEnabled(False)
         else:
             self.playFailSound.play()
             self.guideLabel.setStyleSheet("color: red")
-            self.guideLabel.setText("Lấy mẫu thất bại\nVui lòng thử lại")
+            self.guideLabel.setText(self.translated("Get samples failed. Please try again."))
             self.cur_encoding_path = ""
             self.saveButton.setEnabled(False)
             self.getSampleButton.setEnabled(True)
@@ -312,27 +321,23 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
         # Stop camera
         self.webcamHandler.stop()
 
-    # Hàm hiển thị webcam trên giao diện chương trình
+    # Function: Display webcam on interface
     def display_image(self, img, display):
         h, w, ch = img.shape
-        bytes_per_line = ch * w
-        qimg = QImage(img.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        display.setImage(qimg)    
+        display.setImage(QImage(img.data, w, h, ch*w, QImage.Format_RGB888))    
 
-    # Hàm thực hiện khi kích chuột nút "Lưu"
     def onClickedSaveBtn(self):
-        print("saveBtn clicked")
         if self.cur_encoding_path == "":
             return
 
-        # Lưu vào database   
+        # Save to database
         studentId = self.studentIdLineEdit.text()
         studentName = self.nameLineEdit.text().title()
         birthday = self.birthdayDateEdit.text()
         className = self.classComboBox.currentText()
         classId = self.getClassIdFromName(className)
 
-        # Cập nhật thông tin học sinh
+        # Update students info
         file_path = join(ENCODING_FOLDER_PATH, studentId + ".pkl")
         if exists(file_path):
             remove(file_path)
@@ -340,12 +345,11 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
         self.studentRepository.add_student(StudentEntity(None, studentName, studentId, birthday, classId, file_path))
         self.cur_encoding_path = ""
         self.playSuccessSound.play()
-        self.guideLabel.setText("Đăng ký thành công!")
+        self.guideLabel.setText(self.translated("Registered successfully!"))
         self.saveButton.setEnabled(False)
-        self.cancelButton.setText("Thoát")
+        self.cancelButton.setText(self.translated("Exit"))
         self.cancelButton.setEnabled(True)
 
-    # Hàm thực hiện khi kích chuột nút "Huỷ"
     def onClickedCancelBtn(self):
         print("cancelBtn clicked")
         try:
@@ -356,24 +360,22 @@ class StudentRegisterMainWindow(QMainWindow, StudentRegisterMainWindowUI):
                 self.cur_encoding_path = ""
         except AttributeError:
             pass
-        
-        # Kết thúc chương trình
         raise SystemExit(0)
 
-    # Trả về lớp học của học sinh
     def getClassIdFromName(self, name) -> int:
         for entity in self.classEntities:
             if entity.name == name:
                 return entity.id
         return -1
 
-    # Hàm thực hiện khi chọn xem danh sách học sinh đã đăng ký
     def onClickedRegisteredStudent(self):
         registerStudentList = RegisteredStudentListDialog()
         registerStudentList.exec()
 
 
+
 if __name__ == "__main__":
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication(argv)
     mainWindow = StudentRegisterMainWindow()
     mainWindow.show()

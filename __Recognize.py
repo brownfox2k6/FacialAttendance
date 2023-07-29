@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from json import load
 from os.path import join
 from queue import Queue
 from constants import DATABASE_FILE_PATH, NUM_RECOGNIZE_IMG, RESOURCE_FOLDER
@@ -6,7 +7,7 @@ from db_access.attendance_repository import AttendanceRepository
 from db_access.class_repository import ClassRepository
 from db_access.entities import AttendanceEntity
 from db_access.student_repository import StudentRepository
-from image_widget import ImageWidget
+from resources.image_widget import ImageWidget
 from numpy import ndarray
 from PyQt5.QtCore import (QCoreApplication, QMetaObject, QRect, QSize, Qt,
                           pyqtSlot)
@@ -15,52 +16,47 @@ from PyQt5.QtMultimedia import QSound
 from PyQt5.QtWidgets import (QLabel, QMainWindow, QMenuBar, QMessageBox,
                              QTableView, QWidget)
 from recognize_face import RecognizeFace
-from table_model import TableModel
+from resources.table_model import TableModel
 from webcam import WebcamHandler
 from sys import argv, exit
 from PyQt5.QtWidgets import QApplication
+from cv2 import cvtColor, COLOR_BGR2RGB, rectangle
 
 
 class StudentRecognizeMainWindowUI(object):
     def __init__(self):
-        with open(join(RESOURCE_FOLDER, "theme.txt")) as specifiedTheme:
-            self.theme = "light" if specifiedTheme.read() == "1" else "dark"
+        with open(join(RESOURCE_FOLDER, "translations.json"), encoding="utf-8") as translations:
+            self.transdict = load(translations)
+        with open(join(RESOURCE_FOLDER, "configurations.json")) as configurations:
+            loaded = load(configurations)
+            self.lang = loaded["lang"]
+            with open(join(RESOURCE_FOLDER, loaded["theme"] + ".qss")) as themeFile:
+                self.styleSheet = themeFile.read()
+        self.translated = lambda x: self.transdict[self.lang][x]
 
     def setupUi(self, mainWindow):
-        with open(join(RESOURCE_FOLDER, self.theme + ".qss")) as themeFile:
-            self.styleSheet = themeFile.read()
-
         mainWindow.setObjectName("mainWindow")
-        mainWindow.resize(940, 420)
+        mainWindow.resize(788, 602)
         mainWindow.setStyleSheet(self.styleSheet)
-        mainWindow.setMinimumSize(QSize(940, 420))
-        mainWindow.setMaximumSize(QSize(940, 420))
+        mainWindow.setMinimumSize(QSize(788, 602))
+        mainWindow.setMaximumSize(QSize(788, 602))
         mainWindow.setWindowIcon(QIcon(join(RESOURCE_FOLDER, "facercg.png")))
 
-        font = QFont()
-        font.setPointSize(10)
-        mainWindow.setFont(font)
         self.centralwidget = QWidget(mainWindow)
         self.centralwidget.setObjectName("centralwidget")
         mainWindow.setCentralWidget(self.centralwidget)
 
         self.imgWidget = ImageWidget(self.centralwidget)
-        self.imgWidget.setGeometry(QRect(10, 10, 300, 300))
-        self.imgWidget.setMinimumSize(QSize(300, 300))
-        self.imgWidget.setMaximumSize(QSize(300, 300))
+        self.imgWidget.setGeometry(QRect(10, 10, 768, 432))
+        self.imgWidget.setMaximumSize(QSize(768, 432))
+        self.imgWidget.setMinimumSize(QSize(768, 432))
         self.imgWidget.setImage(QImage(join(RESOURCE_FOLDER, "facercg.png")))
         self.imgWidget.setObjectName("widget")
 
-        self.attendanceTable = QTableView(self.centralwidget)
-        self.attendanceTable.setGeometry(QRect(330, 10, 600, 300))
-        self.attendanceTable.setMinimumSize(QSize(600, 300))
-        self.attendanceTable.setMaximumSize(QSize(600, 300))
-        self.attendanceTable.setObjectName("tableView")
-
         self.guideLabel = QLabel(self.centralwidget)
-        self.guideLabel.setGeometry(QRect(0, 320, 940, 70))
-        self.guideLabel.setMinimumSize(QSize(940, 70))
-        self.guideLabel.setMaximumSize(QSize(940, 70))
+        self.guideLabel.setGeometry(QRect(0, 452, 768, 150))
+        self.guideLabel.setMinimumSize(QSize(768, 150))
+        self.guideLabel.setMaximumSize(QSize(768, 150))
         font = QFont()
         font.setPointSize(14)
         font.setBold(True)
@@ -69,17 +65,12 @@ class StudentRecognizeMainWindowUI(object):
         self.guideLabel.setAlignment(Qt.AlignCenter)
         self.guideLabel.setObjectName("label")
 
-        self.menubar = QMenuBar(mainWindow)
-        self.menubar.setGeometry(QRect(0, 0, 633, 23))
-        self.menubar.setObjectName("menubar")
-        mainWindow.setMenuBar(self.menubar)
-
         self.retranslateUi(mainWindow)
         QMetaObject.connectSlotsByName(mainWindow)
 
     def retranslateUi(self, mainWindow):
         _translate = QCoreApplication.translate
-        mainWindow.setWindowTitle(_translate("mainWindow", "Điểm danh học sinh"))
+        mainWindow.setWindowTitle(_translate("mainWindow", self.translated("Attendance check")))
         self.guideLabel.setText(_translate("mainWindow", ""))
 
 
@@ -87,8 +78,7 @@ class StudentRecognizeMainWindow(QMainWindow, StudentRecognizeMainWindowUI):
     def __init__(self):
         super().__init__(None)
         self.setupUi(self)
-        # Hiển thị khi camera chưa được hiện lên
-        self.guideLabel.setText("Vui lòng chờ... Camera đang khởi động...")
+        self.guideLabel.setText(self.translated("Please wait... Camera is starting..."))
 
         self.classRepository = ClassRepository(DATABASE_FILE_PATH)
         self.studentRepository = StudentRepository(DATABASE_FILE_PATH)
@@ -104,15 +94,6 @@ class StudentRecognizeMainWindow(QMainWindow, StudentRecognizeMainWindowUI):
         self.webcamHandler.start()
         self.recognizeFace.start()
 
-        self.attendanceModel = []
-        self.attendanceTableHeader = ("Họ và Tên", "Mã học sinh", "Lớp", "Thời gian điểm danh")
-        self.attendanceTableModel = TableModel(self.attendanceModel, self.attendanceTableHeader)
-        self.attendanceTable.setModel(self.attendanceTableModel)
-        self.attendanceTable.setColumnWidth(0, 210)
-        self.attendanceTable.setColumnWidth(1, 110)
-        self.attendanceTable.setColumnWidth(2, 65)
-        self.attendanceTable.setColumnWidth(3, 164)
-
         self.playSuccessSound = QSound(join(RESOURCE_FOLDER, "recognize_success.wav"))
         self.playFailSound = QSound(join(RESOURCE_FOLDER, "recognize_fail.wav"))
 
@@ -126,82 +107,65 @@ class StudentRecognizeMainWindow(QMainWindow, StudentRecognizeMainWindowUI):
         self.today = date.today().strftime("%d/%m/%Y")
         self.hasDoneFaceRecognition = False
 
+
     @pyqtSlot(ndarray)
     def captureImageCallback(self, image):
-        # Khi hasDfoneFaceRecognition = False, tức là chưa hoàn thành
-        # thuật toán nhận diện khuôn mặt thì vẫn hiển thị hướng dẫn
-        if self.hasDoneFaceRecognition == False:
-            self.guideLabel.setText("Định vị khuôn mặt của bạn vào giữa khung hình\nTiến độ: {}/{}"
-                                    .format(self.recognizeFace.attemptCount, NUM_RECOGNIZE_IMG))
+        # Display instructions until finish face recognition
+        if not self.hasDoneFaceRecognition:
+            self.guideLabel.setText(f"{self.translated('Move your face')}\n{self.translated('Progress')}:\
+                                      {self.registerFace.registerProgress}/{NUM_RECOGNIZE_IMG}")
 
-        # Hiển thị khung hình lên giao diện chương trình
-        self.display_image(image, self.imgWidget) 
+        self.image = cvtColor(image, COLOR_BGR2RGB)
 
-        # Add vào queue
-        self.image_queue.put(image)
+        # Display camera on UI and push in queue
+        self.display_image(self.image, self.imgWidget) 
+        self.image_queue.put(self.image)
 
-    @pyqtSlot(str, str)
-    def recognizeCallback(self, result, student_id):
+    @pyqtSlot(str, list)
+    def recognizeCallback(self, result, student_ids):
         if result == "NoFace":
             self.hasDoneFaceRecognition = False
             self.guideLabel.setStyleSheet(self.styleSheet)
 
+        elif result == "Fail":
+            self.hasDoneFaceRecognition = True
+            self.guideLabel.setStyleSheet(self.failLabelStylesheet)
+            self.playFailSound.play()
+            self.guideLabel.setText(self.translated("Get samples failed. Please try again."))
+        
         else:
             self.hasDoneFaceRecognition = True
+            self.guideLabel.setStyleSheet(self.successLabelStylesheet)
+            guideLabel_content = []
 
-            if result == "Fail":
-                self.playFailSound.play()
-                self.guideLabel.setStyleSheet(self.failLabelStylesheet)
-                self.guideLabel.setText("Nhận dạng thất bại, vui lòng thử lại")
+            for student_id in student_ids:
+                if student_id == "Unknown":
+                    self.playFailSound.play()
 
-            elif result == "MoreThanOneFace":
-                self.playFailSound.play()
-                self.guideLabel.setStyleSheet(self.failLabelStylesheet)
-                self.guideLabel.setText("Có nhiều hơn một khuôn mặt trong khung hình")
-
-            # result = "Success"
-            else:
-                # Lấy ra mã học sinh và lớp
-                students = self.studentRepository.get_by_student_id(student_id)
-                if len(students) > 0:
-                    classes = self.classRepository.get_class(students[0].class_id)
-                    if len(classes) > 0:
-                        class_name = classes[0].name
-
-                    # Lưu vào database điểm danh nếu học sinh chưa điểm danh trong ngày
+                # Save to attendance database if student hasn't attend before (in day)
+                else:
+                    student = self.studentRepository.get_by_student_id(student_id)[0]
                     if not self.attendanceRepository.check_student_attendance(student_id, self.today):
                         self.playSuccessSound.play()
-                        now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                        self.attendanceRepository.add_attendance(AttendanceEntity(None, self.today, students[0].student_id, now, None))
-                        # show to list
-                        self.attendanceModel.insert(0, (students[0].name, student_id, class_name, now))
-                        self.attendanceTable.model().layoutChanged.emit()
-
-                    # Hiển thị thông báo nhận diện thành công và hiển thị tên + mã hs + lớp
-                    self.guideLabel.setStyleSheet(self.successLabelStylesheet)
-                    self.guideLabel.setText("Nhận diện thành công\n" + students[0].name + " - " + students[0].student_id + " - " + class_name)
-
-                else:
-                    self.playFailSound.play()
-                    self.guideLabel.setStyleSheet(self.failLabelStylesheet)
-                    self.guideLabel.setText("Không tìm thấy thông tin học sinh")
+                        self.attendanceRepository.add_attendance(AttendanceEntity(None, self.today, student.student_id, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), None))
+                    guideLabel_content.append(f"{student.name} - {student.student_id} - {self.classRepository.get_class(student.class_id)[0].name}")
+                    self.guideLabel.setText("\n".join(guideLabel_content))
 
         # Clear queue
         with self.image_queue.mutex:
             self.image_queue.queue.clear()
 
-    # Hàm hiển thị webcam trên giao diện chương trình
+    # Function: Display webcam on interface
     def display_image(self, img, display):
         h, w, ch = img.shape
-        bytes_per_line = ch * w
-        display.setImage(QImage(img.data, h, w, bytes_per_line, QImage.Format_RGB888))
+        display.setImage(QImage(img.data, w, h, ch*w, QImage.Format_RGB888))
 
-    # Hàm thực hiện khi kích chuột nút thoát chương trình
+    # Function: Executes when click Exit
     def closeEvent(self, event):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Question)
-        msg.setText("Bạn có muốn thoát chương trình hay không?")
-        msg.setWindowTitle("Xác nhận lại")
+        msg.setText(self.translated("Do you want to exit?"))
+        msg.setWindowTitle(self.translated("Reconfirm"))
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result = msg.exec()
         if result == QMessageBox.Yes:
@@ -213,6 +177,7 @@ class StudentRecognizeMainWindow(QMainWindow, StudentRecognizeMainWindowUI):
 
 
 if __name__ == "__main__":
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication(argv)
     mainWindow = StudentRecognizeMainWindow()
     mainWindow.show()

@@ -8,7 +8,7 @@ from PyQt6 import QtCore
 import constants
 
 
-class RecognizeThread(QtCore.QObject):
+class RecognizeThread(QtCore.QThread):
     recognized_signal = QtCore.pyqtSignal(list)
 
     def __init__(self):

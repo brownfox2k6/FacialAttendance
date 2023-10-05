@@ -1,0 +1,7 @@
+colorama
+numpy
+opencv_python
+pandas
+PyQt6
+PyQt6_sip
+tabulate

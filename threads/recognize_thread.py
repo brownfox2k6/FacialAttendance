@@ -52,6 +52,6 @@ class RecognizeThread(QObject, FaceProcess):
         """
         Emit student_name, student_id and class_name
         """
-        student = self.studentRepository.get_student(student_id)[0]
+        student = self.studentRepository.get_student(student_id)
         self.signal.emit((student.student_name, student.student_id,
                           student.class_name))

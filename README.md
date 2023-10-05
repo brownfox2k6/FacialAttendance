@@ -1,3 +1,5 @@
+Code tested on Python 3.11
+
 # Runnable files
 
 ## `register_ui.py`

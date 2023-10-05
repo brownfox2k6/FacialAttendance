@@ -1,0 +1,1 @@
+{"lang": "vi", "webcam": 0, "face_process_frequency": 3, "face_detection_model": "./dnn_models/face_detection_yunet_2023mar.onnx", "face_recognition_model": "./dnn_models/face_recognition_sface_2021dec.onnx", "similarity_metric": "cosine", "cosine_similarity_threshold": 0.363, "l2_similarity_threshold": 1.128, "register_frames_limit": 100, ".": 0}

@@ -1,0 +1,1 @@
+## This `db_access` folder contains all the codes which work with `attendance.db`

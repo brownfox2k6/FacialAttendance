@@ -18,10 +18,10 @@ class RecognizeWindow(QMainWindow, UI):
         super().__init__()
         setup_theme('auto')
 
-        if load_stylesheet('dark')[:10] == load_stylesheet('auto')[:10]:
+        if load_stylesheet('dark')[:30] == load_stylesheet('auto')[:30]:
             self.qlabel_ss = 'padding-left: 5px; border: 1px solid rgb(63, 64, 66);'
         else:
-            self.qlabel_ss = 'padding-left: 5px; border: 1px solid rgb(218, 210, 224);'
+            self.qlabel_ss = 'padding-left: 5px; border: 1px solid rgb(218, 220, 224);'
 
         self.setObjectName('recognizeWindow')
         self.setWindowIcon(QIcon(f'./resources/facercg.png'))

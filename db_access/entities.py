@@ -1,4 +1,7 @@
+# ./db_access/entities.py
+
 from dataclasses import dataclass
+
 
 @dataclass
 class ClassEntity():

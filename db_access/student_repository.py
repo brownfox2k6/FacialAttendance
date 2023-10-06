@@ -50,7 +50,7 @@ class StudentRepository(db_access):
         remove(self.face_path(student_id))
 
     def add_student(self, student: StudentEntity) -> None:
-        self.query("""
+        self.action("""
             INSERT INTO students (student_id, student_name, class_name, parent_email)
                 VALUES (?, ?, ?, ?)
         """, student.student_id, student.student_name, student.class_name, student.parent_email)

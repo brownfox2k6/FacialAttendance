@@ -1,3 +1,5 @@
+# ./db_access/class_repository.py
+
 from db_access.init import db_access
 from os import listdir, remove
 from db_access.entities import ClassEntity

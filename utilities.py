@@ -1,3 +1,5 @@
+# ./utilities.py
+
 from colorama import init, Fore, Back, Style
 from sqlite3 import connect
 from json import load, dump
@@ -5,7 +7,6 @@ from PyQt6.QtMultimedia import QMediaDevices
 from db_access.class_repository import ClassRepository
 from db_access.student_repository import StudentRepository
 from db_access.entities import ClassEntity
-from pandas import DataFrame
 from tabulate import tabulate
 from send_mail import SendMail
 from datetime import datetime
@@ -13,16 +14,21 @@ from datetime import datetime
 abbr = ("", "en", "vi")
 full = ("", "English", "Vietnamese")
 
+
 class Utilities():
     def __init__(self):
-        self.get_available_webcams = lambda: ['.'+x.description() for x in QMediaDevices.videoInputs()]
+        init(autoreset=True)
+        self.get_available_webcams = lambda: [
+            '.'+x.description() for x in QMediaDevices.videoInputs()]
         self.get_configurations()
         self.get_translations()
+        self.classRepository = ClassRepository()
+        self.studentRepository = StudentRepository()
 
     def get_configurations(self):
         with open("./resources/configurations.json") as f:
             self.configurations = load(f)
-    
+
     def save_configurations(self):
         with open("./resources/configurations.json", "w") as f:
             dump(self.configurations, f)
@@ -39,18 +45,12 @@ class Utilities():
         cursor.execute("SELECT * FROM translations")
         self.transdict = {x[0]: x for x in cursor.fetchall()}
         self.trans = lambda x: x[1:] if x[0] == '.' else\
-                self.transdict[x][abbr.index(self.configurations["lang"])-1]
+            self.transdict[x][abbr.index(self.configurations["lang"])-1]
         conn.close()
 
-class UtilitiesCLI(Utilities):
-    def __init__(self):
-        init(autoreset=True)
-        super().__init__()
-        self.classRepository = ClassRepository()
-        self.studentRepository = StudentRepository()
-    
     def main(self):
-        options = ("Change language", "Change webcam", "Options - Classes", "Options - Students", "Send attendance records")
+        options = ("Change language", "Change webcam", "Options - Classes",
+                   "Options - Students", "Send attendance records")
         self.print_options("Facial attendance system", *options)
         match self.get_choice(len(options)):
             case 0: exit()
@@ -59,7 +59,7 @@ class UtilitiesCLI(Utilities):
             case 3: self.work_with_classes()
             case 4: self.work_with_students()
             case 5: self.send_attendance_records()
-    
+
     def change_lang(self):  # Option 1 of main (1)
         options = ("English", "Vietnamese", )
         self.print_options("Change language", "English", "Vietnamese")
@@ -93,9 +93,11 @@ class UtilitiesCLI(Utilities):
             for _class in classes:
                 table[self.trans("Class")].append(_class.class_name)
                 table[self.trans("Start time")].append(_class.start_time)
-                table[self.trans("Teacher's email")].append(_class.teacher_email)
+                table[self.trans("Teacher's email")].append(
+                    _class.teacher_email)
 
-            print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")}')
+            print(
+                f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")}')
             print(tabulate(table, headers="keys", tablefmt="grid"))
             options = ("Add class", "Delete class", "Modify class")
             self.print_options('', *options)
@@ -106,45 +108,54 @@ class UtilitiesCLI(Utilities):
                 case 3: self.modify_class(table)
 
     def add_class(self):  # Option 1 of work_with_classes (3.1)
-        print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")} -> {self.trans("Add class")}')
+        print(
+            f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")} -> {self.trans("Add class")}')
         print(f'{Fore.CYAN}>>> {self.trans("Class (e.g. 10A1)")}:  ', end='')
         class_name = input().upper()
         print(f'{Fore.CYAN}>>> {self.trans("Start time")} (HH:MM):  ', end='')
         start_time = input()
-        print(f"""{Fore.CYAN}>>> {self.trans("Teacher's email (e.g. abc@gmail.com)")}:  """, end='')
+        print(
+            f"""{Fore.CYAN}>>> {self.trans("Teacher's email (e.g. abc@gmail.com)")}:  """, end='')
         teacher_email = input()
         print(f"""{Fore.YELLOW}{self.trans("[!] Please make sure this information is valid "
                                            "and correct, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
-            self.classRepository.add_class(ClassEntity(class_name, start_time, teacher_email))
+            self.classRepository.add_class(ClassEntity(
+                class_name, start_time, teacher_email))
             print(f'{Fore.GREEN}{self.trans("Operation completed!")}')
         else:
             print(f'{Fore.RED}{self.trans("Operation aborted.")}')
 
     def delete_class(self, table):  # Option 2 of work_with_classes (3.2)
-        print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")} -> {self.trans("Delete class")}')
+        print(
+            f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")} -> {self.trans("Delete class")}')
         print(f"""{Fore.CYAN}{self.trans(">>> Enter indexes of class(es) you want "
                                          "to delete (separated by spaces)")} (1-{len(table["#"])}):  """, end='')
         while True:
             try:
-                classes = [table[self.trans("Class")][int(x)-1] for x in input().split()]
+                classes = [table[self.trans("Class")][int(x)-1]
+                           for x in input().split()]
                 break
             except:
-                print(f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} (1-{len(table["#"])}):  ', end='')
+                print(
+                    f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} (1-{len(table["#"])}):  ', end='')
         print(f"""{Fore.YELLOW}{self.trans("[!] Delete a class will also delete all students in that class, "
                                            "all their face data as well as their attendance records, "
                                            "do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
             for _class in classes:
                 self.classRepository.delete_class(_class)
-            print(f'{Fore.GREEN}{self.trans("Operation completed!")} (Deleted {", ".join(classes)})')
+            print(
+                f'{Fore.GREEN}{self.trans("Operation completed!")} (Deleted {", ".join(classes)})')
         else:
             print(f'{Fore.RED}{self.trans("Operation aborted.")}')
         self.work_with_classes()
-    
+
     def modify_class(self, table):  # Option 3 of work_with_classes (3.3)
-        print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")} -> {self.trans("Modify class")}')
-        idx = self.get_choice(len(table["#"]), 1, ">>> Enter index of a class you want to modify") - 1
+        print(
+            f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Classes")} -> {self.trans("Modify class")}')
+        idx = self.get_choice(
+            len(table["#"]), 1, ">>> Enter index of a class you want to modify") - 1
         old_class_name = table[self.trans("Class")][idx]
         old_start_time = table[self.trans("Start time")][idx]
         old_teacher_email = table[self.trans("Teacher's email")][idx]
@@ -160,11 +171,15 @@ class UtilitiesCLI(Utilities):
         print(f"""{Fore.YELLOW}{self.trans("[!] Please make sure this information is valid "
                                            "and correct, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
-            self.classRepository.update_class(old_class_name, class_name, start_time, teacher_email)
+            self.classRepository.update_class(
+                old_class_name, class_name, start_time, teacher_email)
             print(f'{Fore.GREEN}{self.trans("Operation completed!")}')
-            print(f'{Fore.GREEN}{self.trans("Class")}: {old_class_name} -> {class_name}')
-            print(f'{Fore.GREEN}{self.trans("Start time")}: {old_start_time} -> {start_time}')
-            print(f"""{Fore.GREEN}{self.trans("Teacher's email")}: {old_teacher_email} -> {teacher_email}""")
+            print(
+                f'{Fore.GREEN}{self.trans("Class")}: {old_class_name} -> {class_name}')
+            print(
+                f'{Fore.GREEN}{self.trans("Start time")}: {old_start_time} -> {start_time}')
+            print(
+                f"""{Fore.GREEN}{self.trans("Teacher's email")}: {old_teacher_email} -> {teacher_email}""")
         else:
             print(f'{Fore.RED}{self.trans("Operation aborted.")}')
         self.work_with_classes()
@@ -174,7 +189,8 @@ class UtilitiesCLI(Utilities):
         print(f'{Fore.CYAN}>>> {self.trans("Class (e.g. 10A1)")}:  ', end='')
         class_name = input().upper()
         if not self.classRepository.get_class(class_name):
-            print(f'{Fore.RED}{self.trans("This class does not exist. Please create it first.")}')
+            print(
+                f'{Fore.RED}{self.trans("This class does not exist. Please create it first.")}')
             return
         students = self.studentRepository.get_all_students_in_class(class_name)
         if not students:
@@ -190,7 +206,8 @@ class UtilitiesCLI(Utilities):
             table[self.trans('Full name')].append(entity.student_name)
             table[self.trans('Student ID')].append(entity.student_id)
             table[self.trans("Parent's email")].append(entity.parent_email)
-        print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Students")} -> {class_name}')
+        print(
+            f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Students")} -> {class_name}')
         print(tabulate(table, headers="keys", tablefmt="grid"))
         options = ("Modify a student", "Delete student(s)")
         self.print_options('', *options)
@@ -198,10 +215,11 @@ class UtilitiesCLI(Utilities):
             case 0: self.main()
             case 1: self.modify_student(class_name, table)
             case 2: self.delete_student(class_name, table)
-    
+
     def modify_student(self, _class, table):  # Option 1 of work_with_students (4.1)
         print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Students")} -> {_class} -> {self.trans("Modify a student")}')
-        idx = self.get_choice(len(table["#"]), 1, ">>> Enter index of a student you want to modify") - 1
+        idx = self.get_choice(
+            len(table["#"]), 1, ">>> Enter index of a student you want to modify") - 1
         old_id = table[self.trans("Student ID")][idx]
         old_name = table[self.trans("Full name")][idx]
         old_email = table[self.trans("Parent's email")][idx]
@@ -221,12 +239,14 @@ class UtilitiesCLI(Utilities):
         print(f"""{Fore.YELLOW}{self.trans("[!] Please make sure this information is valid "
                                            "and correct, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
-            self.studentRepository.update_student(old_id, new_id, new_name, new_class, new_email)
+            self.studentRepository.update_student(
+                old_id, new_id, new_name, new_class, new_email)
             print(f'{Fore.GREEN}{self.trans("Operation completed!")}')
             print(f'{Fore.GREEN}{self.trans("Student ID")}: {old_id} -> {new_id}')
             print(f'{Fore.GREEN}{self.trans("Full name")}: {old_name} -> {new_name}')
             print(f'{Fore.GREEN}{self.trans("Class")}: {old_class} -> {new_class}')
-            print(f"""{Fore.GREEN}{self.trans("Parent's email")}: {old_email} -> {new_email}""")
+            print(
+                f"""{Fore.GREEN}{self.trans("Parent's email")}: {old_email} -> {new_email}""")
         else:
             print(f'{Fore.RED}{self.trans("Operation aborted.")}')
         self.work_with_students()
@@ -237,22 +257,26 @@ class UtilitiesCLI(Utilities):
                                          "to delete (separated by spaces)")} (1-{len(table["#"])}):  """, end='')
         while True:
             try:
-                students = [table[self.trans("Student ID")][int(x)-1] for x in input().split()]
+                students = [table[self.trans("Student ID")][int(x)-1]
+                            for x in input().split()]
                 break
             except:
-                print(f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} (1-{len(table["#"])}):  ', end='')
+                print(
+                    f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} (1-{len(table["#"])}):  ', end='')
         print(f"""{Fore.YELLOW}{self.trans("[!] Delete a student will also delete his/her face data"
                                            "as well as his/her attendance records, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
             for student in students:
                 self.studentRepository.delete_student(student)
-            print(f'{Fore.GREEN}{self.trans("Operation completed!")} (Deleted {", ".join(students)})')
+            print(
+                f'{Fore.GREEN}{self.trans("Operation completed!")} (Deleted {", ".join(students)})')
         else:
             print(f'{Fore.RED}{self.trans("Operation aborted.")}')
         self.work_with_students()
 
     def send_attendance_records(self):
-        print(f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Send attendance records")}')
+        print(
+            f'\n{Style.BRIGHT}{Fore.MAGENTA}{Back.CYAN}{self.trans("Send attendance records")}')
         print(f"""{Fore.CYAN}{self.trans(">>> Enter date (leave empty to send today's records) (dd/mm/yyyy)")}:  """, end='')
         while True:
             try:
@@ -264,7 +288,8 @@ class UtilitiesCLI(Utilities):
                     dt = datetime(y, m, d).strftime("%d/%m/%Y")
                 break
             except:
-                print(f'{Fore.RED}{self.trans(">>> Invalid date, please enter again")}:  ', end='')
+                print(
+                    f'{Fore.RED}{self.trans(">>> Invalid date, please enter again")}:  ', end='')
         sendMail = SendMail(self.transdict, self.configurations["lang"], dt)
         sendMail.send_data()
         print(f'{Fore.GREEN}{self.trans("Data sent successfully!")} ({dt})')
@@ -280,7 +305,7 @@ class UtilitiesCLI(Utilities):
         for idx, option in enumerate(options, 1):
             print(f'{Fore.YELLOW}{idx} - {self.trans(option)}')
         print(f'{Fore.YELLOW}==========')
-    
+
     def get_choice(self, r, l=0, s=">>> Your choice"):
         print(f'{Fore.CYAN}{self.trans(s)} ({l}-{r}):  ', end='')
         while True:
@@ -290,18 +315,22 @@ class UtilitiesCLI(Utilities):
                     return choice
                 raise ValueError
             except:
-                print(f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} ({l}-{r}):  ', end='')
+                print(
+                    f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} ({l}-{r}):  ', end='')
 
     def get_yn(self):
         while True:
             match input().strip().lower():
                 case 'y': return True
                 case 'n': return False
-            print(f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} (y/n):  ', end='')
-    
+            print(
+                f'{Fore.RED}{self.trans(">>> Invalid choice, please choose again")} (y/n):  ', end='')
+
     def change(self, announce, old, new):
-        print(f'{Fore.GREEN}{self.trans(announce)} ({self.trans(old)} -> {self.trans(new)})')
+        print(
+            f'{Fore.GREEN}{self.trans(announce)} ({self.trans(old)} -> {self.trans(new)})')
         self.save_configurations()
 
-a = UtilitiesCLI()
+
+a = Utilities()
 a.main()

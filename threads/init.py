@@ -1,3 +1,5 @@
+# ./threads/init.py
+
 from json import load
 from cv2 import (FaceDetectorYN, FaceRecognizerSF, FaceRecognizerSF_FR_COSINE,
                  FaceRecognizerSF_FR_NORM_L2)
@@ -50,10 +52,12 @@ class FaceProcess:
     def compare(self, f1, f2):
         match self.similarity_metric:
             case "cosine":
-                cosine_score = self.recognizer.match(f1, f2, FaceRecognizerSF_FR_COSINE)
+                cosine_score = self.recognizer.match(
+                    f1, f2, FaceRecognizerSF_FR_COSINE)
                 return cosine_score >= self.cosine_similarity_threshold
             case "l2":
-                l2_score = self.recognizer.match(f1, f2, FaceRecognizerSF_FR_NORM_L2)
+                l2_score = self.recognizer.match(
+                    f1, f2, FaceRecognizerSF_FR_NORM_L2)
                 return l2_score <= self.l2_similarity_threshold
             case _:
                 raise ValueError("similarity metric is not 'cosine' or 'l2'")

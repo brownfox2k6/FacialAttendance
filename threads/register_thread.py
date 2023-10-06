@@ -1,8 +1,9 @@
+# ./threads/register_thread.py
+
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from threads.init import FaceProcess
 from numpy import ndarray
 from pickle import dump
-from os import rename, remove
 
 from db_access.student_repository import StudentRepository
 
@@ -21,7 +22,7 @@ class RegisterThread(QObject, FaceProcess):
     def inc_counter(self):
         self.counter += 1
         self.signal.emit(str(self.counter))
-    
+
     @pyqtSlot(ndarray)
     def process(self, frame):
         faces = self.detector.detect(frame)[1]

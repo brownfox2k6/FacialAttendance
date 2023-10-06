@@ -1,3 +1,5 @@
+# ./send_mail.py
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from smtplib import SMTP
@@ -9,6 +11,7 @@ from build_table import build_table
 from pandas import DataFrame
 
 abbr = ('en', 'vi')
+
 
 class SendMail():
     def __init__(self, transdict, lang, date=""):
@@ -22,7 +25,7 @@ class SendMail():
         """
         self.transdict = transdict
         self.lang = lang
-        self.trans = lambda x : self.transdict[x][abbr.index(self.lang)]
+        self.trans = lambda x: self.transdict[x][abbr.index(self.lang)]
         self.date = date or datetime.today().strftime("%d/%m/%Y")
         self.attendanceRepository = AttendanceRepository()
         self.classRepository = ClassRepository()
@@ -57,7 +60,8 @@ class SendMail():
         """
         student_names, student_ids, enter_times, statuses = [], [], [], []
         for (student_id, student_name, enter_time, status, parent_email) in attendances:
-            self.send_to_parent(student_id, student_name, enter_time, status, parent_email)
+            self.send_to_parent(student_id, student_name,
+                                enter_time, status, parent_email)
             student_names.append(student_name)
             student_ids.append(student_id)
             enter_times.append(enter_time)
@@ -88,7 +92,8 @@ class SendMail():
         message["Subject"] = title
         message["From"] = "brfox2k6@gmail.com"
         message["To"] = parent_email
-        body = msgs[(self.lang, status)].format(student_name, student_id, enter_time)
+        body = msgs[(self.lang, status)].format(
+            student_name, student_id, enter_time)
         message.attach(MIMEText(body, "html"))
         self.server.send_message(message)
 
@@ -96,7 +101,8 @@ class SendMail():
         for entity in self.classRepository.get_all_classes():
             class_name = entity.class_name
             teacher_email = entity.teacher_email
-            attendances, status_count = self.attendanceRepository.get_all_attendances_in_class(class_name, self.date)
+            attendances, status_count = self.attendanceRepository.get_all_attendances_in_class(
+                class_name, self.date)
             message = MIMEMultipart()
             if self.lang == "en":
                 title = f"CLASS {class_name} - ATTENDANCE INFORMATION - {self.date}"
@@ -110,7 +116,3 @@ class SendMail():
             detail = self.build_detail(attendances)
             message.attach(MIMEText(detail, "html"))
             self.server.send_message(message)
-
-
-# a = SendMail("vi")
-# a.send_data()

@@ -1,3 +1,5 @@
+# ./recognize.py
+
 from cv2 import COLOR_BGR2RGB, cvtColor
 from numpy import ndarray
 from PyQt6 import QtCore
@@ -92,7 +94,8 @@ class RecognizeWindow(QMainWindow, UI):
 
         self.webcam_thread = WebcamThread()
         self.webcam_thread.frame_to_display_signal.connect(self.display_frame)
-        self.webcam_thread.frame_to_process_signal.connect(self.recognize.process)
+        self.webcam_thread.frame_to_process_signal.connect(
+            self.recognize.process)
         self.webcam_thread.start()
 
         self.attendanceRepository = AttendanceRepository()
@@ -115,17 +118,22 @@ class RecognizeWindow(QMainWindow, UI):
         match status[0]:
             case 'NOT VALID':
                 self.bbox_color = 'yellow'
-                self.guide_label.setStyleSheet('font-size: 14pt; color: rgb(255, 209, 77);')
+                self.guide_label.setStyleSheet(
+                    'font-size: 14pt; color: rgb(255, 209, 77);')
                 self.guide_label.setText(
                     self.trans('There must be exactly one face in the frame'))
             case 'FAILED':
                 self.bbox_color = 'red'
-                self.guide_label.setStyleSheet('font-size: 14pt; color: rgb(213, 52, 87);')
-                self.guide_label.setText(self.trans('Recognition failed, please try again'))
+                self.guide_label.setStyleSheet(
+                    'font-size: 14pt; color: rgb(213, 52, 87);')
+                self.guide_label.setText(self.trans(
+                    'Recognition failed, please try again'))
             case _:
                 self.bbox_color = 'green'
-                self.guide_label.setStyleSheet('font-size: 14pt; color: rgb(140, 152, 87);')
-                self.guide_label.setText(self.trans('Recognized successfully!'))
+                self.guide_label.setStyleSheet(
+                    'font-size: 14pt; color: rgb(140, 152, 87);')
+                self.guide_label.setText(
+                    self.trans('Recognized successfully!'))
         self.display_student_info(status)
 
     @pyqtSlot(tuple)
@@ -146,10 +154,12 @@ class RecognizeWindow(QMainWindow, UI):
         self.class2.setText(class_name)
         status = self.attendanceRepository.get_student_status(student_id)
         if status == 'On time':
-            self.status2.setStyleSheet(self.qlabel_ss + 'color: rgb(140, 152, 87)')
+            self.status2.setStyleSheet(
+                self.qlabel_ss + 'color: rgb(140, 152, 87)')
             self.status2.setText(self.trans('On time'))
         else:
-            self.status2.setStyleSheet(self.qlabel_ss + 'color: rgb(213, 52, 87)')
+            self.status2.setStyleSheet(
+                self.qlabel_ss + 'color: rgb(213, 52, 87)')
             self.status2.setText(self.trans('Late'))
 
 

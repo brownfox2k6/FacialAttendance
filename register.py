@@ -1,13 +1,13 @@
-from re import fullmatch
-import typing
-from PyQt6 import QtGui
+# ./register.py
 
-from cv2 import COLOR_BGR2RGB, cvtColor, rectangle
+from re import fullmatch
+
+from cv2 import COLOR_BGR2RGB, cvtColor
 from numpy import ndarray
 from PyQt6.QtCore import QMetaObject, Qt, QThread, pyqtSlot
 from PyQt6.QtGui import QIcon, QImage, QPixmap
 from PyQt6.QtWidgets import (QFormLayout, QGroupBox, QLabel, QLineEdit,
-                             QMainWindow, QMessageBox, QPushButton, QWidget, QStyle)
+                             QMainWindow, QMessageBox, QPushButton, QWidget)
 
 from db_access.class_repository import ClassRepository
 from db_access.entities import StudentEntity
@@ -15,7 +15,6 @@ from db_access.student_repository import StudentRepository
 from init import UI
 from threads.register_thread import RegisterThread
 from threads.webcam_thread import WebcamThread
-
 import qdarktheme
 
 
@@ -44,25 +43,30 @@ class RegisterWindow(QMainWindow, UI):
 
         self.name_edit = QLineEdit(self.form_layout_widget)
         self.name_edit.setPlaceholderText(self.trans('Full name'))
-        self.form_layout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.name_edit)
+        self.form_layout.setWidget(
+            0, QFormLayout.ItemRole.FieldRole, self.name_edit)
 
         self.student_id_edit = QLineEdit(self.form_layout_widget)
         self.student_id_edit.setPlaceholderText(self.trans('Student ID'))
-        self.form_layout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.student_id_edit)
+        self.form_layout.setWidget(
+            1, QFormLayout.ItemRole.FieldRole, self.student_id_edit)
 
         self.class_edit = QLineEdit(self.form_layout_widget)
         self.class_edit.setPlaceholderText(self.trans('Class (e.g. 10A1)'))
-        self.form_layout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.class_edit)
+        self.form_layout.setWidget(
+            2, QFormLayout.ItemRole.FieldRole, self.class_edit)
 
         self.parent_email_edit = QLineEdit(self.form_layout_widget)
-        self.parent_email_edit.setPlaceholderText(self.trans('Email (e.g. abc@gmail.com)'))
-        self.form_layout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.parent_email_edit)
+        self.parent_email_edit.setPlaceholderText(
+            self.trans('Email (e.g. abc@gmail.com)'))
+        self.form_layout.setWidget(
+            3, QFormLayout.ItemRole.FieldRole, self.parent_email_edit)
 
         self.frame_label = QLabel(self)
         self.frame_label.setGeometry(400, 10, 300, 300)
         pm = QPixmap.fromImage(QImage(f'./resources/facercg.png')).scaled(
-                300, 300, Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation)
+            300, 300, Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation)
         self.frame_label.setPixmap(pm)
 
         self.guide_label = QLabel(self)
@@ -70,7 +74,8 @@ class RegisterWindow(QMainWindow, UI):
         self.guide_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.guide_label.setWordWrap(True)
         self.guide_label.setStyleSheet('font-size: 14pt')
-        self.guide_label.setText(self.trans('Enter your information then select "Get samples"'))
+        self.guide_label.setText(self.trans(
+            'Enter your information then select "Get samples"'))
 
         self.get_sample_button = QPushButton(self)
         self.get_sample_button.setGeometry(60, 333, 130, 41)
@@ -94,13 +99,16 @@ class RegisterWindow(QMainWindow, UI):
         if not student_id:
             error.append(self.trans('• Student ID is empty'))
         elif not student_id.isascii():
-            error.append(self.trans('• Student ID must contain only ASCII characters'))
+            error.append(self.trans(
+                '• Student ID must contain only ASCII characters'))
         elif not student_id.isalnum():
-            error.append(self.trans('• Student ID must not contain spaces or special characters'))
+            error.append(self.trans(
+                '• Student ID must not contain spaces or special characters'))
         if not student_name:
             error.append(self.trans('• Full name is empty'))
         elif not student_name.replace(' ', '').isalpha():
-            error.append(self.trans('• Full name contains numerical characters or special characters'))
+            error.append(self.trans(
+                '• Full name contains numerical characters or special characters'))
         if self.studentRepository.get_student(student_id):
             error.append(self.trans('• This Student ID has already exist'))
         if not self.classRepository.get_class(class_name):
@@ -115,7 +123,8 @@ class RegisterWindow(QMainWindow, UI):
         class_name = self.class_edit.text()
         parent_email = self.parent_email_edit.text()
 
-        error = self.check_information_error(student_name, student_id, class_name, parent_email)
+        error = self.check_information_error(
+            student_name, student_id, class_name, parent_email)
         if error:
             ret = self.show_error_msgbox('\n'.join(error))
             return
@@ -133,7 +142,7 @@ class RegisterWindow(QMainWindow, UI):
             return
 
         self.register = RegisterThread(StudentEntity(
-                student_id, student_name, class_name, parent_email))
+            student_id, student_name, class_name, parent_email))
         self.register.bbox_signal.connect(self.update_bboxes)
         self.register.signal.connect(self.update_status)
         self.register_thread = QThread()
@@ -142,7 +151,8 @@ class RegisterWindow(QMainWindow, UI):
 
         self.webcam_thread = WebcamThread()
         self.webcam_thread.frame_to_display_signal.connect(self.display_frame)
-        self.webcam_thread.frame_to_process_signal.connect(self.register.process)
+        self.webcam_thread.frame_to_process_signal.connect(
+            self.register.process)
         self.webcam_thread.start()
 
         self.bboxes = tuple()
@@ -169,7 +179,8 @@ class RegisterWindow(QMainWindow, UI):
     def update_status(self, status):
         match status:
             case 'NOT VALID':
-                self.guide_label.setText(self.trans('There must be exactly one face in the frame'))
+                self.guide_label.setText(self.trans(
+                    'There must be exactly one face in the frame'))
             case 'SAVED':
                 self.register_thread.quit()
                 self.bboxes = ()
@@ -179,15 +190,16 @@ class RegisterWindow(QMainWindow, UI):
             case _:
                 prog = int(status)
                 self.guide_label.setText(f'{self.trans("Progress")}: '
-                        + f'{round(prog / self.register_frames_limit * 100, 1)}%')
+                                         + f'{round(prog / self.register_frames_limit * 100, 1)}%')
                 if prog == self.register_frames_limit:
                     self.register.save()
                     return
 
+
 if __name__ == '__main__':
     from sys import argv
     from PyQt6.QtWidgets import QApplication
-    
+
     app = QApplication(argv)
     window = RegisterWindow()
     window.show()

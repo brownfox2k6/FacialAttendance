@@ -1,3 +1,5 @@
+# ./threads/recognize_thread.py
+
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from threads.init import FaceProcess
 from os import listdir
@@ -6,6 +8,7 @@ from numpy import ndarray
 
 from db_access.student_repository import StudentRepository
 from db_access.attendance_repository import AttendanceRepository
+
 
 class RecognizeThread(QObject, FaceProcess):
     bbox_signal = pyqtSignal(tuple)

@@ -1,3 +1,5 @@
+# ./threads/webcam_thread.py
+
 from json import load
 
 from cv2 import (CAP_DSHOW, CAP_PROP_FRAME_HEIGHT,

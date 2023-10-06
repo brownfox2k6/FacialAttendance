@@ -1,3 +1,5 @@
+# ./init.py
+
 from json import load
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtGui import QIcon
@@ -50,7 +52,7 @@ class UI():
         msgbox.setDefaultButton(QMessageBox.StandardButton.No)
         msgbox.setText(info)
         return msgbox.exec()
-    
+
     def show_ok_msgbox(self, info):
         msgbox = QMessageBox()
         msgbox.setWindowIcon(QIcon(f"./resources/facercg.png"))

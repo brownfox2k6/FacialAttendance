@@ -1,4 +1,8 @@
-Code tested on Python 3.11
+Code tested on:
+- Python: version 3.11
+- Device: virtual machine:
+  - CPU: 1 core (2.60 MHz)
+  - RAM: 4 GB
 
 # Runnable files
 

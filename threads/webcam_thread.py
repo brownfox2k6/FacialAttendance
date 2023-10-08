@@ -38,7 +38,9 @@ class WebcamThread(QThread):
             self.counter = 0
 
     def get_frame(self):
-        orig_frame = self.cap.read()[1]
+        ret, orig_frame = self.cap.read()
+        if not ret:
+            return None
         cropped_frame = orig_frame[self.tl_y:self.br_y,
                                    self.tl_x:self.br_x]
         return cropped_frame
@@ -46,6 +48,8 @@ class WebcamThread(QThread):
     def run(self):
         while self.isRunning():
             frame = self.get_frame()
+            if frame is None:
+                continue
             if self.counter == 0:
                 self.frame_to_process_signal.emit(frame)
             self.frame_to_display_signal.emit(frame)

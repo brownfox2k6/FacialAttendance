@@ -98,10 +98,10 @@ class RegisterWindow(QMainWindow, UI):
         error = []
         if not student_id:
             error.append(self.trans('• Student ID is empty'))
-        elif not student_id.isascii():
+        if not student_id.isascii():
             error.append(self.trans(
                 '• Student ID must contain only ASCII characters'))
-        elif not student_id.isalnum():
+        if not student_id.isalnum():
             error.append(self.trans(
                 '• Student ID must not contain spaces or special characters'))
         if not student_name:

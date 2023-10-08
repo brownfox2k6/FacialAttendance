@@ -335,8 +335,11 @@ class Utilities():
                 print(
                     f'{Fore.RED}{self.trans(">>> Invalid date, please enter again")}:  ', end='')
         sendMail = SendMail(self.transdict, self.configurations["lang"], dt)
-        sendMail.send_data()
-        print(f'{Fore.GREEN}{self.trans("Data sent successfully!")} ({dt})')
+        try:
+            sendMail.send_data()
+            print(f'{Fore.GREEN}{self.trans("Data sent successfully!")} ({dt})')
+        except:
+            print(f'{Fore.RED}{self.trans("Errors occured")}. {self.trans("Data sent failed")}.')
         self.main()
 
     def print_options(self, title, *options):

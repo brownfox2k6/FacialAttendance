@@ -1,6 +1,7 @@
 Code tested on:
 - Python: version 3.11
 - Device: virtual machine:
+  - OS: Windows (10 or above)
   - CPU: 1 core (2.60 MHz)
   - RAM: 4 GB
 

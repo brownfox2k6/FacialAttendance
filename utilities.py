@@ -10,6 +10,7 @@ from db_access.entities import ClassEntity
 from tabulate import tabulate
 from send_mail import SendMail
 from datetime import datetime
+from re import findall, fullmatch
 
 abbr = ("", "en", "vi")
 full = ("", "English", "Vietnamese")
@@ -117,6 +118,19 @@ class Utilities():
         print(
             f"""{Fore.CYAN}>>> {self.trans("Teacher's email (e.g. abc@gmail.com)")}:  """, end='')
         teacher_email = input()
+        error = []
+        if self.classRepository.get_class(class_name):
+            error.append(self.trans("This class has already exist."))
+        time = findall("\d+", start_time)
+        if not (len(time) == 2 and 0 <= int(time[0]) <= 23 and 0 <= int(time[1]) <= 59):
+            error.append(self.trans("Invalid time."))
+        if not fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', teacher_email):
+            error.append(self.trans("Invalid email."))
+        if error:
+            for er in error:
+                print(f'{Fore.RED}{er}')
+            print(f'{Fore.RED}{self.trans("Operation aborted.")}')
+            return self.work_with_classes()
         print(f"""{Fore.YELLOW}{self.trans("[!] Please make sure this information is valid "
                                            "and correct, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
@@ -125,6 +139,7 @@ class Utilities():
             print(f'{Fore.GREEN}{self.trans("Operation completed!")}')
         else:
             print(f'{Fore.RED}{self.trans("Operation aborted.")}')
+        self.work_with_classes()
 
     def delete_class(self, table):  # Option 2 of work_with_classes (3.2)
         print(
@@ -168,6 +183,19 @@ class Utilities():
         print(f"""{Fore.CYAN}>>> {self.trans("Enter new teacher's email (e.g. abc@gmail.com)")} ({self.trans("current")}: """
               f'{old_teacher_email}, {self.trans("leave empty to keep it unchanged")}):  ', end='')
         teacher_email = input() or old_teacher_email
+        error = []
+        if class_name != old_class_name and self.classRepository.get_class(class_name):
+            error.append(self.trans("This class has already exist."))
+        time = findall("\d+", start_time)
+        if not (len(time) == 2 and 0 <= int(time[0]) <= 23 and 0 <= int(time[1]) <= 59):
+            error.append(self.trans("Invalid time."))
+        if not fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', teacher_email):
+            error.append(self.trans("Invalid email."))
+        if error:
+            for er in error:
+                print(f'{Fore.RED}{er}')
+            print(f'{Fore.RED}{self.trans("Operation aborted.")}')
+            return self.work_with_classes()
         print(f"""{Fore.YELLOW}{self.trans("[!] Please make sure this information is valid "
                                            "and correct, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():
@@ -236,6 +264,22 @@ class Utilities():
         print(f"""{Fore.CYAN}>>> {self.trans("Enter new parent's email")} ({self.trans("current")}: """
               f"""{old_email}, {self.trans("leave empty to keep it unchanged")}):  """, end='')
         new_email = input() or old_email
+        error = []
+        if not new_id.isascii():
+            error.append(self.trans(
+                '• Student ID must contain only ASCII characters'))
+        if not new_id.isalnum():
+            error.append(self.trans(
+                '• Student ID must not contain spaces or special characters'))
+        if not self.classRepository.get_class(new_class):
+            error.append(self.trans('• Invalid class name'))
+        if not fullmatch(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b', new_email):
+            error.append(self.trans('• Invalid email'))
+        if error:
+            for er in error:
+                print(f'{Fore.RED}{er}')
+            print(f'{Fore.RED}{self.trans("Operation aborted.")}')
+            return self.work_with_students()
         print(f"""{Fore.YELLOW}{self.trans("[!] Please make sure this information is valid "
                                            "and correct, do you want to proceed (y/n)?")}  """, end='')
         if self.get_yn():

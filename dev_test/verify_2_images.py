@@ -1,3 +1,5 @@
+# For testing purpose only
+
 from cv2 import FaceDetectorYN, FaceRecognizerSF, FaceRecognizerSF_FR_COSINE, imread
 
 dnn_models = input("Enter path of the folder contais models: ")

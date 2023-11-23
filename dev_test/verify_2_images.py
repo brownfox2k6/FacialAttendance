@@ -2,7 +2,7 @@
 
 from cv2 import FaceDetectorYN, FaceRecognizerSF, FaceRecognizerSF_FR_COSINE, imread
 
-dnn_models = input("Enter path of the folder contais models: ")
+dnn_models = input("Enter path of the folder contains models: ")
 img1 = input("Enter path of first image: ")
 img2 = input("Enter path of second image: ")
 
